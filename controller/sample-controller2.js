@@ -9,8 +9,14 @@
 
 module.exports = SampleController2;
 
-function SampleController2() {
+function SampleController2($logger) {
 
+    /**
+     * Test session
+     * @param {type} $session
+     * @param {type} $response
+     * @returns {undefined}
+     */
     this.increase = function ($session, $response) {
         if ($session.count == null) {
             $session.count = {
@@ -21,6 +27,24 @@ function SampleController2() {
         }
         $response.end($session.count);
     };
+
+    this.uploadImage = function ($input, $response) {
+        var fs = require('fs');
+        var fileName = Math.round(Math.random() * 1000000) + ".jpg";
+        var filePath = __dirname + "/../client/public/image/" + fileName;
+        fs.writeFile(filePath, $input.get(), function (error) {
+            if (error != null) {
+                $response.error("Error: " + error);
+            } else {
+                var message = "Write file successful, fileName: " + filePath;
+                $response.end(message);
+                
+                $logger.debug(message);
+            }
+        });
+    };
+
+
 
 }
 

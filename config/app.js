@@ -5,12 +5,13 @@
  * Tho Q Luong, June 15, 2015
  */
 
+var fs = require("fs");
+
 module.exports = {
     https: {
-        enable: false
-        /**
-         * Add property key and cert before enable https
-         */
+        enable: true,
+        key: fs.readFileSync(__dirname + "/https/key.pem"),
+        cert: fs.readFileSync(__dirname + "/https/cert.pem")
     },
     //Its value will be set when run cloudchat
     //Depend on input argument, applicationMode could be full, app or service
@@ -38,7 +39,7 @@ module.exports = {
     },
     database: require("./database.js"),
     channelAuthentication: {
-        enable: false,
+        enable: true,
         jwt: {
             secretKey: "!!!hellovietnam!!!",
             algorithm: "HS256",

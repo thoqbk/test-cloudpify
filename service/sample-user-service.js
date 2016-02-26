@@ -74,7 +74,8 @@ var users = [{
     }];
 
 function UserService() {
-    this.get = function (id) {
+    this.get = function (id) {            
+        
         var retVal = Q.defer();
         var tempUsers = users.filter(function (tempUser) {
             return tempUser.id == id;

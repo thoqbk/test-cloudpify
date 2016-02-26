@@ -7,5 +7,6 @@
  * 
  */
 module.exports = [
-    "controller/sample-controller"
+    "controller/sample-controller",
+    "controller/sample-controller2"
 ];

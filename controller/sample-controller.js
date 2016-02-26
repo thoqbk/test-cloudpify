@@ -15,17 +15,18 @@ function SampleController(userService, $logger) {
      */
     this.hello = function ($input, $response) {
         var senderId = $input.getUserId();
-        return userService.getById(senderId)
+        return userService.get(senderId)
                 .then(function (user) {
-                    var message = "Receive message from " + senderId;
-                    message += ". Hello " + user.username;
-                    $response.echo({
-                        id: $input.getId(),
-                        stanza: "iq",
-                        type: "result",
-                        ns: "io:cloudchat:message:create",
-                        body: message
-                    });
+                    if ($input.get("deviceId") != "microsoft") {
+                        var message = "Receive message from " + senderId;
+                        message += ". Hello " + user.username + ", this is SampleController";
+                        $response.echo({
+                            id: $input.getId(),
+                            type: "result",
+                            action: "io:cloudchat:message:create",
+                            body: message
+                        });
+                    }
                     $logger.debug("This is hello action!");
                 });
     };

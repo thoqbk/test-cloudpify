@@ -30,15 +30,14 @@ function SampleController2($logger) {
 
     this.uploadImage = function ($input, $response) {
         var fs = require('fs');
-        var fileName = Math.round(Math.random() * 1000000) + ".jpg";
+        var fileName = $input.get("fileName") + "-" + Math.round(Math.random() * 1000000) + "." + $input.get("fileExtension");
         var filePath = __dirname + "/../client/public/image/" + fileName;
-        fs.writeFile(filePath, $input.get(), function (error) {
+        fs.writeFile(filePath, $input.get("fileData"), function (error) {
             if (error != null) {
                 $response.error("Error: " + error);
             } else {
                 var message = "Write file successful, fileName: " + filePath;
                 $response.end(message);
-                
                 $logger.debug(message);
             }
         });

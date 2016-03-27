@@ -1,3 +1,5 @@
+/* global it */
+
 /**
  * Copyright (C) 2016, Cloudpify
  * 
@@ -23,6 +25,10 @@ var userService = new (require("../service/sample-user-service"))();
 var authenticationService = new (require("../lib/service/authentication-service.js"))(function () {
     return userService;
 }, $config, $logger);
+
+var bson = require("bson");
+
+var BSON = new bson.BSONPure.BSON();
 
 var httpClient = require($config.https.enable ? "https" : "http");
 
@@ -55,10 +61,26 @@ describe("test binary stanza", function () {
     });
 
     it("should process binary stanza correctly", function (done) {
+        this.timeout(5000);
 
         $config.channelAuthentication.enable = false;
 
         var cloudpifyHandler = new (require("../lib/handler.js"))();
+
+        //read file
+        var fs = require("fs");
+        var fileData = fs.readFileSync(__dirname + "/../client/public/image/victorian-houses.jpg");
+
+        var binaryStanza = BSON.serialize({
+            id: 1,
+            type: "iq",
+            action: "cloudchat:sample-controller2:upload-image",
+            body: {
+                fileName: "victorian-houses",
+                fileExtension: "jpg",
+                fileData: fileData
+            }
+        });
 
         cloudpifyHandler.start()
                 .then(function () {
@@ -83,18 +105,9 @@ describe("test binary stanza", function () {
                 })
                 .then(function (socket) {
                     var retVal = Q.defer();
-                    //read file
-                    var fs = require("fs");
-                    var fileData = fs.readFileSync(__dirname + "/../client/public/image/victorian-houses.jpg");
 
-                    var Stanzas = require("../lib/stanzas");
-
-                    var binaryStanza = Stanzas.wrapAsBinaryStanza({
-                        id: 1,
-                        type: "iq",
-                        action: "cloudchat:sample-controller2:upload-image",
-                        body: fileData
-                    });
+                    $logger.debug("Begin emitting file having size: " + fileData.length
+                            + "; binaryStanza.length: " + binaryStanza.length);
                     socket.emit("cloudpify", binaryStanza);
 
                     socket.on("cloudpify", function (stanza) {
@@ -105,14 +118,66 @@ describe("test binary stanza", function () {
                     return retVal.promise;
                 })
                 .then(function () {
+                    return authenticationService.generateToken(1);
+                })
+                .then(function (token) {
+                    //Try to send data via http post binary
+                    var retVal = Q.defer();
+
+                    var httpClient = require($config.https.enable ? "https" : "http");
+                    var options = {
+                        hostname: "localhost",
+                        port: 5102,
+                        path: "/post-stanza?token=" + token,
+                        method: "POST",
+                        headers: {
+                            userId: 1,
+                            'Content-Type': 'stanza/binary'// IMPORTANT!!!
+                        }
+                    };
+
+                    if ($config.https.enable) {
+                        options.rejectUnauthorized = false;
+                        options.requestCert = true;
+                    }
+
+                    var request = httpClient.request(options, function (response) {
+                        response.setEncoding("utf8");
+                        var responseInString = "";
+                        response.on("data", function (chunk) {
+                            responseInString += chunk;
+                        });
+                        response.on("end", function () {
+                            try {
+                                console.log("Receive message from server: " + responseInString);
+                                var responseStanza = JSON.parse(responseInString);
+                                if (responseStanza.type == "result") {
+                                    retVal.resolve(true);
+                                } else {
+                                    retVal.reject(new Error(responseStanza.body));
+                                }
+                            } catch (e) {
+                                retVal.reject(e);
+                            }
+                        });
+                    });
+
+                    request.on("error", function (error) {
+                        $logger.debug("Error: " + error.stack);
+                        retVal.reject(error);
+                    });
+
+                    request.write(binaryStanza);
+                    request.end();
+
+                    //return
+                    return retVal.promise;
+                })
+                .then(function () {
                     return cloudpifyHandler.stop();
                 })
                 .then(done)
                 .fail(done);
-
-
-
-
     });
 });
 

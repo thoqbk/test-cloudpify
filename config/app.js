@@ -9,6 +9,7 @@ var fs = require("fs");
 
 module.exports = {
     name: "Test-cloudpify",
+    debug: true,
     https: {
         enable: true,
         key: fs.readFileSync(__dirname + "/https/key.pem"),
@@ -47,5 +48,6 @@ module.exports = {
             algorithm: "HS256",
             expiresIn: "10s"
         }
-    }
+    },
+    log: require("./log.js")
 };

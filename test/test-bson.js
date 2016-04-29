@@ -14,12 +14,10 @@ var BSON = new bson.BSONPure.BSON();
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
-
 var $config = require("../config/app.js");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 describe("Cloudpify with BSON", function () {

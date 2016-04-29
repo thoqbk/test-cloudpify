@@ -11,12 +11,12 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var $config = require("../config/app.js");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 var userService = new (require("../service/sample-user-service"))();
@@ -54,14 +54,12 @@ describe("test expressjs request and response", function () {
                 .then(function () {
                     done();
                 })
-                .fail(done);
+                .catch(done);
     });
 });
 
 
 function sendHttpRequest(path, isPost) {
-
-    var retVal = Q.defer();
 
     var options = {
         hostname: "localhost",
@@ -79,21 +77,21 @@ function sendHttpRequest(path, isPost) {
         options.rejectUnauthorized = false;
     }
 
-    var request = httpClient.request(options, function (response) {
-        response.setEncoding("utf8");
-        var responseInString = "";
-        response.on("data", function (chunk) {
-            responseInString += chunk;
+    return new Promise(function (resolve, reject) {
+        var request = httpClient.request(options, function (response) {
+            response.setEncoding("utf8");
+            var responseInString = "";
+            response.on("data", function (chunk) {
+                responseInString += chunk;
+            });
+            response.on("end", function () {
+                resolve(response.statusCode);
+            });
         });
-        response.on("end", function () {
-            retVal.resolve(response.statusCode);
+        request.on("error", function (error) {
+            reject(error);
         });
-    });
-    request.on("error", function (error) {
-        retVal.reject(error);
-    });
 
-    request.end();
-
-    return retVal.promise;
+        request.end();
+    });
 }

@@ -12,14 +12,14 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var $config = require("../config/app.js");
 
 var httpClient = require($config.https.enable ? "https" : "http");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 var userService = new (require("../service/sample-user-service"))();
@@ -35,13 +35,13 @@ describe("test session service", function () {
     beforeEach(function (done) {
         cloudpifyHandler.start()
                 .then(done)
-                .fail(done);
+                .catch(done);
     });
 
     afterEach(function (done) {
         cloudpifyHandler.stop()
                 .then(done)
-                .fail(done);
+                .catch(done);
     });
 
     it("should increase a count variable after each request. Via HTTP Post", function (done) {
@@ -61,9 +61,9 @@ describe("test session service", function () {
                                 expect(stanza.body.value).to.equal(2);
                                 done();
                             })
-                            .fail(done);
+                            .catch(done);
                 })
-                .fail(done);
+                .catch(done);
     });
 
     it("should increase a count variable after each request. Via Socket IO", function (done) {
@@ -102,7 +102,6 @@ describe("test session service", function () {
 });
 
 function sendStanzaRequestViaHttpPost(token) {
-    var retVal = Q.defer();
 
     var options = {
         hostname: "localhost",
@@ -120,30 +119,31 @@ function sendStanzaRequestViaHttpPost(token) {
         options.requestCert = true;
     }
 
-    var request = httpClient.request(options, function (response) {
-        response.setEncoding("utf8");
-        var responseInString = "";
-        response.on("data", function (chunk) {
-            responseInString += chunk;
+    return new Promise(function (resolve, reject) {
+        var request = httpClient.request(options, function (response) {
+            response.setEncoding("utf8");
+            var responseInString = "";
+            response.on("data", function (chunk) {
+                responseInString += chunk;
+            });
+            response.on("end", function () {
+                try {
+                    console.log("Receive message from server: " + responseInString);
+                    resolve(JSON.parse(responseInString));
+                } catch (e) {
+                    reject(e);
+                }
+            });
         });
-        response.on("end", function () {
-            try {
-                console.log("Receive message from server: " + responseInString);
-                retVal.resolve(JSON.parse(responseInString));
-            } catch (e) {
-                retVal.reject(e);
-            }
+        request.on("error", function (error) {
+            reject(error);
         });
+        request.write(JSON.stringify({
+            id: 10,
+            action: "cloudchat:sample-controller2:increase",
+            type: "iq"
+        }));
+        request.end();
     });
-    request.on("error", function (error) {
-        retVal.reject(error);
-    });
-    request.write(JSON.stringify({
-        id: 10,
-        action: "cloudchat:sample-controller2:increase",
-        type: "iq"
-    }));
-    request.end();
 
-    return retVal.promise;
 }

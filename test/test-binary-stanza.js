@@ -12,12 +12,12 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var $config = require("../config/app.js");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 var userService = new (require("../service/sample-user-service"))();
@@ -85,99 +85,98 @@ describe("test binary stanza", function () {
         cloudpifyHandler.start()
                 .then(function () {
 
-                    var retVal = Q.defer();
+                    return new Promise(function (resolve, reject) {
+                        var serverUrl = ($config.https.enable ? "https" : "http") + "://localhost:5102";
+                        var opts = {
+                            forceNew: true
+                        };
 
-                    var serverUrl = ($config.https.enable ? "https" : "http") + "://localhost:5102";
-                    var opts = {
-                        forceNew: true
-                    };
+                        var io = require("socket.io-client");
+                        var socket = io.connect(serverUrl, opts);
+                        socket.on("error", function (error) {
+                            socket.off("error");
+                            reject(error);
+                        });
+                        socket.on("connect", function () {
+                            resolve(socket);
+                        });
+                    });
 
-                    var io = require("socket.io-client");
-                    var socket = io.connect(serverUrl, opts);
-                    socket.on("error", function (error) {
-                        socket.off("error");
-                        retVal.reject(error);
-                    });
-                    socket.on("connect", function () {
-                        retVal.resolve(socket);
-                    });
-                    return retVal.promise;
+
                 })
                 .then(function (socket) {
-                    var retVal = Q.defer();
-
                     $logger.debug("Begin emitting file having size: " + fileData.length
                             + "; binaryStanza.length: " + binaryStanza.length);
                     socket.emit("cloudpify", binaryStanza);
 
-                    socket.on("cloudpify", function (stanza) {
-                        $logger.debug("Receive response stanza from server: " + JSON.stringify(stanza));
-                        expect(stanza.type).to.equal("result");
-                        retVal.resolve();
+                    return new Promise(function (resolve) {
+                        socket.on("cloudpify", function (stanza) {
+                            $logger.debug("Receive response stanza from server: " + JSON.stringify(stanza));
+                            expect(stanza.type).to.equal("result");
+                            resolve();
+                        });
                     });
-                    return retVal.promise;
+
                 })
                 .then(function () {
                     return authenticationService.generateToken(1);
                 })
                 .then(function (token) {
                     //Try to send data via http post binary
-                    var retVal = Q.defer();
-
-                    var httpClient = require($config.https.enable ? "https" : "http");
-                    var options = {
-                        hostname: "localhost",
-                        port: 5102,
-                        path: "/post-stanza?token=" + token,
-                        method: "POST",
-                        headers: {
-                            userId: 1,
-                            'Content-Type': 'stanza/binary'// IMPORTANT!!!
-                        }
-                    };
-
-                    if ($config.https.enable) {
-                        options.rejectUnauthorized = false;
-                        options.requestCert = true;
-                    }
-
-                    var request = httpClient.request(options, function (response) {
-                        response.setEncoding("utf8");
-                        var responseInString = "";
-                        response.on("data", function (chunk) {
-                            responseInString += chunk;
-                        });
-                        response.on("end", function () {
-                            try {
-                                console.log("Receive message from server: " + responseInString);
-                                var responseStanza = JSON.parse(responseInString);
-                                if (responseStanza.type == "result") {
-                                    retVal.resolve(true);
-                                } else {
-                                    retVal.reject(new Error(responseStanza.body));
-                                }
-                            } catch (e) {
-                                retVal.reject(e);
+                    return new Promise(function (resolve, reject) {
+                        var httpClient = require($config.https.enable ? "https" : "http");
+                        var options = {
+                            hostname: "localhost",
+                            port: 5102,
+                            path: "/post-stanza?token=" + token,
+                            method: "POST",
+                            headers: {
+                                userId: 1,
+                                'Content-Type': 'stanza/binary'// IMPORTANT!!!
                             }
+                        };
+
+                        if ($config.https.enable) {
+                            options.rejectUnauthorized = false;
+                            options.requestCert = true;
+                        }
+
+                        var request = httpClient.request(options, function (response) {
+                            response.setEncoding("utf8");
+                            var responseInString = "";
+                            response.on("data", function (chunk) {
+                                responseInString += chunk;
+                            });
+                            response.on("end", function () {
+                                try {
+                                    console.log("Receive message from server: " + responseInString);
+                                    var responseStanza = JSON.parse(responseInString);
+                                    if (responseStanza.type == "result") {
+                                        resolve(true);
+                                    } else {
+                                        reject(new Error(responseStanza.body));
+                                    }
+                                } catch (e) {
+                                    reject(e);
+                                }
+                            });
                         });
+
+                        request.on("error", function (error) {
+                            $logger.debug("Error: " + error.stack);
+                            reject(error);
+                        });
+
+                        request.write(binaryStanza);
+                        request.end();
                     });
 
-                    request.on("error", function (error) {
-                        $logger.debug("Error: " + error.stack);
-                        retVal.reject(error);
-                    });
-
-                    request.write(binaryStanza);
-                    request.end();
-
-                    //return
-                    return retVal.promise;
                 })
                 .then(function () {
                     return cloudpifyHandler.stop();
                 })
                 .then(done)
-                .fail(done);
+                .catch(done);
     });
 });
 

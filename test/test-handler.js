@@ -10,12 +10,12 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var $config = require("../config/app.js");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 var userService = new (require("../service/sample-user-service"))();
@@ -58,7 +58,7 @@ describe("cloudpify handler", function () {
                 .then(function () {
                     done();
                 })
-                .fail(done);
+                .catch(done);
     });
 
     it("should start server in app and service mode", function (done) {
@@ -95,61 +95,60 @@ describe("cloudpify handler", function () {
                     expect(isRunning).to.equal(false);
                     done();
                 })
-                .fail(done);
+                .catch(done);
     });
 });
 
 function testServer() {
-    var retVal = Q.defer();
 
-    authenticationService.generateToken(1)
-            .then(function (token) {
-                var options = {
-                    hostname: "localhost",
-                    port: 5102,
-                    path: "/post-stanza?token=" + token,
-                    method: "POST",
-                    headers: {
-                        userId: 1,
-                        'Content-Type': 'application/json'
-                    }
-                };
-                
-                if($config.https.enable){
-                    options.rejectUnauthorized = false;
-                    options.requestCert = true;
-                }
-                
-                var request = httpClient.request(options, function (response) {
-                    response.setEncoding("utf8");
-                    var responseInString = "";
-                    response.on("data", function (chunk) {
-                        responseInString += chunk;
-                    });
-                    response.on("end", function () {
-                        try {
-                            console.log("Receive message from server: " + responseInString);
-                            retVal.resolve(true);
-                        } catch (e) {
-                            retVal.reject(e);
+    return new Promise(function (resolve, reject) {
+        authenticationService.generateToken(1)
+                .then(function (token) {
+                    var options = {
+                        hostname: "localhost",
+                        port: 5102,
+                        path: "/post-stanza?token=" + token,
+                        method: "POST",
+                        headers: {
+                            userId: 1,
+                            'Content-Type': 'application/json'
                         }
-                    });
-                });
-                request.on("error", function (error) {
-                    retVal.resolve(false);
-                });
-                request.write(JSON.stringify({
-                    id: 10,
-                    action: "cloudchat:sample-controller:hello",
-                    type: "iq",
-                    body: {
-                        deviceId: "android",
-                        username: "Tho Q Luong"
-                    }
-                }));
-                request.end();
-            });
+                    };
 
-    return retVal.promise;
+                    if ($config.https.enable) {
+                        options.rejectUnauthorized = false;
+                        options.requestCert = true;
+                    }
+
+                    var request = httpClient.request(options, function (response) {
+                        response.setEncoding("utf8");
+                        var responseInString = "";
+                        response.on("data", function (chunk) {
+                            responseInString += chunk;
+                        });
+                        response.on("end", function () {
+                            try {
+                                console.log("Receive message from server: " + responseInString);
+                                resolve(true);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        });
+                    });
+                    request.on("error", function (error) {
+                        resolve(false);
+                    });
+                    request.write(JSON.stringify({
+                        id: 10,
+                        action: "cloudchat:sample-controller:hello",
+                        type: "iq",
+                        body: {
+                            deviceId: "android",
+                            username: "Tho Q Luong"
+                        }
+                    }));
+                    request.end();
+                });
+    });
 
 }

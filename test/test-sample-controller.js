@@ -11,7 +11,7 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var _ = require("underscore");
 
@@ -19,7 +19,7 @@ var _ = require("underscore");
 var $config = require("../config/app.js");
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 var userService = new (require("../service/sample-user-service"))();
@@ -54,7 +54,7 @@ describe("test sample controller", function () {
                         done();
                     });
                 })
-                .fail(done);
+                .catch(done);
     });
 
     afterEach(function (done) {
@@ -63,7 +63,7 @@ describe("test sample controller", function () {
                     connection.destroy();
                     done();
                 })
-                .fail(done);
+                .catch(done);
     });
 
     it("should return correct stanza format", function (done) {

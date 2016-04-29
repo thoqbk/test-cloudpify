@@ -10,8 +10,6 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
-
 var Fx = require("../lib/fx.js");
 
 var _ = require("underscore");

@@ -10,16 +10,16 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
-
 var Fx = require("../lib/fx.js");
 
 var _ = require("underscore");
 
+var $config = require("../config/app.js");
+
 var container = new (require("../lib/container.js"))();
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 container.register("$logger", $logger);
 

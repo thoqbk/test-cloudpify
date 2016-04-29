@@ -10,7 +10,7 @@
 var expect = require("chai").expect;
 var assert = require("chai").assert;
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 var $config = require("../config/app.js");
 
@@ -22,7 +22,7 @@ var opts = {
 };
 
 var log4js = require("log4js");
-log4js.configure("./config/log4js.json");
+log4js.configure($config.log);
 var $logger = log4js.getLogger("app");
 
 describe("test authentication service", function () {
@@ -76,13 +76,13 @@ describe("test authentication service", function () {
                     });
                     request.end();
                 })
-                .fail(done);
+                .catch(done);
     });
 
     afterEach(function (done) {
         cloudpifyHandler.stop()
                 .then(done)
-                .fail(done);
+                .catch(done);
     });
 
     it("should create new connection fail with an invalid token", function (done) {
@@ -98,7 +98,7 @@ describe("test authentication service", function () {
                         expect(stanza.type).to.equal("error");
                         done();
                     })
-                    .fail(done);
+                    .catch(done);
         });
         connection.on("connect", function () {
             assert.ok(false, "Still open connection with an invalid token");
@@ -118,7 +118,7 @@ describe("test authentication service", function () {
                         expect(stanza.type).to.equal("result");
                         done();
                     })
-                    .fail(done);
+                    .catch(done);
         });
     });
 
@@ -126,69 +126,70 @@ describe("test authentication service", function () {
         this.timeout(12000);
         sendStanzaRequestViaHttpPost(token)
                 .then(function (stanza) {
-                    var retVal = Q.defer();
                     expect(stanza.type).to.equal("result");
                     console.log("Waiting 10s for expiring the authentication token ...");
-                    setTimeout(function () {
-                        retVal.resolve(sendStanzaRequestViaHttpPost(token));
-                    }, 10000);
-                    return retVal.promise;
+
+                    return new Promise(function (resolve) {
+                        setTimeout(function () {
+                            resolve(sendStanzaRequestViaHttpPost(token));
+                        }, 10000);
+                    });
+
                 })
                 .then(function (stanza) {
                     expect(stanza.type).to.equal("error");
                     done();
                 })
-                .fail(done);
+                .catch(done);
     });
 });
 
 function sendStanzaRequestViaHttpPost(token) {
-    var retVal = Q.defer();
-
-    var options = {
-        hostname: "localhost",
-        port: 5102,
-        path: "/post-stanza?token=" + token,
-        method: "POST",
-        headers: {
-            userId: 1,
-            'Content-Type': 'application/json'
-        }
-    };
-
-    if ($config.https.enable) {
-        options.rejectUnauthorized = false;
-        options.requestCert = true;
-    }
-
-    var request = httpClient.request(options, function (response) {
-        response.setEncoding("utf8");
-        var responseInString = "";
-        response.on("data", function (chunk) {
-            responseInString += chunk;
-        });
-        response.on("end", function () {
-            try {
-                console.log("Receive message from server: " + responseInString);
-                retVal.resolve(JSON.parse(responseInString));
-            } catch (e) {
-                retVal.reject(e);
+    
+    return new Promise(function (resolve, reject) {
+        var options = {
+            hostname: "localhost",
+            port: 5102,
+            path: "/post-stanza?token=" + token,
+            method: "POST",
+            headers: {
+                userId: 1,
+                'Content-Type': 'application/json'
             }
-        });
-    });
-    request.on("error", function (error) {
-        retVal.reject(error);
-    });
-    request.write(JSON.stringify({
-        id: 10,
-        action: "cloudchat:sample-controller:hello",
-        type: "iq",
-        body: {
-            deviceId: "android",
-            username: "Tho Q Luong"
-        }
-    }));
-    request.end();
+        };
 
-    return retVal.promise;
+        if ($config.https.enable) {
+            options.rejectUnauthorized = false;
+            options.requestCert = true;
+        }
+
+        var request = httpClient.request(options, function (response) {
+            response.setEncoding("utf8");
+            var responseInString = "";
+            response.on("data", function (chunk) {
+                responseInString += chunk;
+            });
+            response.on("end", function () {
+                try {
+                    console.log("Receive message from server: " + responseInString);
+                    resolve(JSON.parse(responseInString));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+        request.on("error", function (error) {
+            reject(error);
+        });
+        request.write(JSON.stringify({
+            id: 10,
+            action: "cloudchat:sample-controller:hello",
+            type: "iq",
+            body: {
+                deviceId: "android",
+                username: "Tho Q Luong"
+            }
+        }));
+        request.end();
+    });
 }

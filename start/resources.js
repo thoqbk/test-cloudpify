@@ -25,7 +25,7 @@ module.exports = function ($getResourceFx, $useStaticResourceFx, authenticationS
                     .then(function (token) {
                         res.end(token);
                     })
-                    .fail(function (error) {
+                    .catch(function (error) {
                         res.end("FAIL");
                     });
         } else {

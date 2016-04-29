@@ -7,7 +7,7 @@
  *
  */
 
-var Q = require("q");
+var Promise = require("bluebird");
 
 module.exports = UserService;
 
@@ -74,14 +74,12 @@ var users = [{
     }];
 
 function UserService() {
-    this.get = function (id) {            
-        
-        var retVal = Q.defer();
-        var tempUsers = users.filter(function (tempUser) {
-            return tempUser.id == id;
+    this.get = function (id) {
+        return new Promise(function (resolve) {
+            var tempUsers = users.filter(function (tempUser) {
+                return tempUser.id == id;
+            });
+            resolve(tempUsers.length == 1 ? tempUsers[0] : null);
         });
-        retVal.resolve(tempUsers.length == 1 ? tempUsers[0] : null);
-        //return
-        return retVal.promise;
     };
 }

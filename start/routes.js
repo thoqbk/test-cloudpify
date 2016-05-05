@@ -34,5 +34,7 @@ module.exports = function (route) {
     //test session
     route.action("cloudchat:sample-controller2:increase", "SampleController2@increase");
     route.action("cloudchat:sample-controller2:upload-image", "SampleController2@uploadImage");
+    
+    route.action("cloudchat:sample-controller2:test-db-connection-factory", "SampleController2@testDbConnectionFactory");
 
 };

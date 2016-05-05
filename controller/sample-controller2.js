@@ -45,5 +45,14 @@ function SampleController2($logger) {
 
 
 
+    this.testDbConnectionFactory = function ($response, dbMysql) {
+        dbMysql.count("* as COUNT").from("chi_user")
+                .then(function (resp) {
+                    $response.end(resp[0].COUNT);
+                })
+                .catch(function (error) {
+                    $response.error("Error: " + error.stack);
+                });
+    };
 }
 

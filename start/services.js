@@ -9,8 +9,18 @@
 
 var UserService = require("../service/sample-user-service.js");
 
-module.exports = function ($registerByClassFx, $config) {
+module.exports = function ($registerFx, $registerByClassFx, $config, $dbConnectionFactory) {
     if ($config.applicationMode == "full" || $config.applicationMode == "service") {
         $registerByClassFx("userService", UserService);
     }
+
+    return new Promise(function (resolve, reject) {
+        $dbConnectionFactory.get("mysql")
+                .then(function (dbMysql) {
+                    $registerFx("dbMysql", dbMysql);
+                    resolve();
+                })
+                .catch(reject);
+    });
+
 };

@@ -7,8 +7,13 @@
  * 
  */
 
-var expect = require("chai").expect;
-var assert = require("chai").assert;
+var chai = require("chai");
+chai.use(require('chai-fuzzy'));
+
+var expect = chai.expect;
+var assert = chai.assert;
+
+
 
 var Fx = require("../lib/fx.js");
 
@@ -50,6 +55,23 @@ var o = {
     fx5: fx5
 };
 
+
+var fx6 = function () {
+    /**
+     * @Service(  name  =  "userService"  )
+     * 
+     * -- @Controller(name="hello", label  =   "Vietnam")
+     * 
+     * @Service
+     * 
+     * @Service()
+     * 
+     * 
+     * @returns {undefined}
+     */
+};
+
+
 describe("Fx: function util", function () {
     it("should detects all methods of object using getMethodNames", function () {
         var methodNames = Fx.getMethodNames(o);
@@ -75,6 +97,49 @@ describe("Fx: function util", function () {
         assert.include(fx4Parameters, "param3");
 
         expect(fx5Parameters.length).to.equal(2);
+    });
+
+    it("should detects all annotations", function () {
+        var annotations = Fx.extractAnnotations(fx6.toString());
+        expect(annotations.length).to.equal(5);
+        //1
+        expect(annotations[0]).to.be.like({
+            name: "Service",
+            enable: true,
+            parameters: {
+                name: "userService"
+            }
+        });
+        //2
+        expect(annotations[1]).to.be.like({
+            name: "Controller",
+            enable: false,
+            parameters: {
+                name: "hello",
+                label: "Vietnam"
+            }
+        });
+        //3
+        expect(annotations[2]).to.be.like({
+            name: "Service",
+            enable: true,
+            parameters: {
+            }
+        });
+        //4
+        expect(annotations[3]).to.be.like({
+            name: "Service",
+            enable: true,
+            parameters: {
+            }
+        });
+        //5
+        expect(annotations[4]).to.be.like({
+            name: "returns",
+            enable: true,
+            parameters: {
+            }
+        });
     });
 });
 

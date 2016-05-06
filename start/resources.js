@@ -6,7 +6,7 @@ var path = require('path');
 
 module.exports = function ($getResource, $useStaticResource, authenticationService) {
 
-    $useStaticResourceFx(path.resolve(__dirname + "/../client/public"));
+    $useStaticResource(path.resolve(__dirname + "/../client/public"));
 
     //common js libraries
     $getResource("/service/string-service.js", function (req, res) {
@@ -17,7 +17,7 @@ module.exports = function ($getResource, $useStaticResource, authenticationServi
         res.sendFile(path.resolve(__dirname + "/../node_modules/q/q.js"));
     });
 
-    $getResourceFx("/login", function (req, res) {
+    $getResource("/login", function (req, res) {
         var userId = req.query.userId;
         var password = req.query.password;
         if (userId == 1 && password == "123") {

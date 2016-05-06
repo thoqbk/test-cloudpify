@@ -87,9 +87,9 @@ describe("IoC container", function () {
             expect(service1.hello()).to.equal("service1.hello");
         };
 
-        var $buildFx = container.resolve("$buildFx");
+        var $build = container.resolve("$build");
         try {
-            $buildFx(Controller5);
+            $build(Controller5);
         } catch (e) {
             assert.ok(false, "Build Container5 fail, message: " + e);
         }
@@ -103,7 +103,7 @@ describe("IoC container", function () {
                     return "service5.hello5";
                 }
             };
-            $buildFx(Controller51, function (name) {
+            $build(Controller51, function (name) {
                 if (name == "service5") {
                     return service5;
                 }
@@ -121,8 +121,8 @@ describe("IoC container", function () {
 
             return "service6.hi6";
         };
-        $invokeFx = container.resolve("$invokeFx");
-        var message = $invokeFx(f, null, function (name) {
+        $invoke = container.resolve("$invoke");
+        var message = $invoke(f, null, function (name) {
             if (name == "service6") {
                 return {
                     hello6: function () {

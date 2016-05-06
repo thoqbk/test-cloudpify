@@ -49,5 +49,6 @@ module.exports = {
             expiresIn: "10s"
         }
     },
-    log: require("./log.js")
+    log: require("./log.js"),
+    scanDirectories: ["controller", "service"]
 };

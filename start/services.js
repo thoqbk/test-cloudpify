@@ -7,13 +7,13 @@
  * 
  */
 
-var UserService = require("../service/sample-user-service.js");
-
-module.exports = function ($register, $registerByClass, $config, $dbConnectionFactory) {
-
-    if ($config.applicationMode == "full" || $config.applicationMode == "service") {
-        $registerByClass("userService", UserService);
-    }
+/**
+ * 
+ * @param {type} $register
+ * @param {type} $dbConnectionFactory
+ * @returns {Promise}
+ */
+module.exports = function ($register, $dbConnectionFactory) {
 
     return new Promise(function (resolve, reject) {
         $dbConnectionFactory.get("mysql")
@@ -23,5 +23,4 @@ module.exports = function ($register, $registerByClass, $config, $dbConnectionFa
                 })
                 .catch(reject);
     });
-
 };

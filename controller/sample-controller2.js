@@ -4,7 +4,7 @@
  * Tho Q Luong <thoqbk@gmail.com>
  * 
  * Feb 13, 2016
- * 
+ * @Controller(name="SampleController2")
  */
 
 module.exports = SampleController2;

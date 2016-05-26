@@ -81,7 +81,9 @@ describe("test authentication service", function () {
 
     afterEach(function (done) {
         cloudpifyHandler.stop()
-                .then(done)
+                .then(function(){
+                    done();
+                })
                 .catch(done);
     });
 

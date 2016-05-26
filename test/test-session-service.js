@@ -34,70 +34,74 @@ describe("test session service", function () {
 
     beforeEach(function (done) {
         cloudpifyHandler.start()
-                .then(done)
-                .catch(done);
+            .then(function () {
+                done();
+            })
+            .catch(done);
     });
 
     afterEach(function (done) {
         cloudpifyHandler.stop()
-                .then(done)
-                .catch(done);
+            .then(function () {
+                done();
+            })
+            .catch(done);
     });
 
     it("should increase a count variable after each request. Via HTTP Post", function (done) {
 
         authenticationService.generateToken(1)
-                .then(function (token) {
-                    sendStanzaRequestViaHttpPost(token)
-                            .then(function (stanza) {
-                                expect(stanza.body.value).to.equal(0);
-                                return sendStanzaRequestViaHttpPost(token);
-                            })
-                            .then(function (stanza) {
-                                expect(stanza.body.value).to.equal(1);
-                                return sendStanzaRequestViaHttpPost(token);
-                            })
-                            .then(function (stanza) {
-                                expect(stanza.body.value).to.equal(2);
-                                done();
-                            })
-                            .catch(done);
-                })
-                .catch(done);
+            .then(function (token) {
+                sendStanzaRequestViaHttpPost(token)
+                    .then(function (stanza) {
+                        expect(stanza.body.value).to.equal(0);
+                        return sendStanzaRequestViaHttpPost(token);
+                    })
+                    .then(function (stanza) {
+                        expect(stanza.body.value).to.equal(1);
+                        return sendStanzaRequestViaHttpPost(token);
+                    })
+                    .then(function (stanza) {
+                        expect(stanza.body.value).to.equal(2);
+                        done();
+                    })
+                    .catch(done);
+            })
+            .catch(done);
     });
 
     it("should increase a count variable after each request. Via Socket IO", function (done) {
         authenticationService.generateToken(1)
-                .then(function (token) {
-                    var serverUrl = ($config.https.enable ? "https" : "http") + "://localhost:5102";
-                    var opts = {
-                        forceNew: true
-                    };
-                    opts.query = "userId=1&token=" + token;
+            .then(function (token) {
+                var serverUrl = ($config.https.enable ? "https" : "http") + "://localhost:5102";
+                var opts = {
+                    forceNew: true
+                };
+                opts.query = "userId=1&token=" + token;
 
-                    var requestStanza = {
-                        id: 10,
-                        action: "cloudchat:sample-controller2:increase",
-                        type: "iq"
-                    };
+                var requestStanza = {
+                    id: 10,
+                    action: "cloudchat:sample-controller2:increase",
+                    type: "iq"
+                };
 
-                    var io = require("socket.io-client");
-                    connection = io.connect(serverUrl, opts);
-                    connection.on("connect", function () {
-                        console.log("Open SocketIO connection to server successfully");
-                        connection.emit("cloudpify", requestStanza);
-                    });
-
-                    connection.on("cloudpify", function (stanza) {
-                        var limit = 10;
-                        if (stanza.body.value < limit) {
-                            connection.emit("cloudpify", requestStanza);
-                        } else if (stanza.body.value == limit) {
-                            connection.destroy();
-                            done();
-                        }
-                    });
+                var io = require("socket.io-client");
+                connection = io.connect(serverUrl, opts);
+                connection.on("connect", function () {
+                    console.log("Open SocketIO connection to server successfully");
+                    connection.emit("cloudpify", requestStanza);
                 });
+
+                connection.on("cloudpify", function (stanza) {
+                    var limit = 10;
+                    if (stanza.body.value < limit) {
+                        connection.emit("cloudpify", requestStanza);
+                    } else if (stanza.body.value == limit) {
+                        connection.destroy();
+                        done();
+                    }
+                });
+            });
     });
 });
 
